@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1a73e8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#202124" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>QuickMemo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- ヘッダー -->
+    <header id="header">
+      <button id="settingsBtn" class="icon-btn" aria-label="設定">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.611 3.611 0 0112 15.6z"/></svg>
+      </button>
+      <button id="accountBtn" class="header-account">
+        <span id="accountName">アカウント未登録</span>
+      </button>
+      <div class="header-actions">
+        <button id="attachBtn" class="icon-btn" aria-label="添付">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        </button>
+        <button id="saveBtn" class="save-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          <span>保存</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- オフラインバー -->
+    <div id="offlineBar" class="offline-bar hidden">
+      <span id="offlineText">オフライン</span>
+    </div>
+
+    <!-- 下書き復元通知 -->
+    <div id="draftNotice" class="notice hidden">
+      <span>下書きを復元しました</span>
+      <button id="dismissDraft" class="notice-close">&times;</button>
+    </div>
+
+    <!-- エディタ -->
+    <main id="editor">
+      <input type="text" id="titleInput" class="title-input" placeholder="タイトル（空欄ならAIが自動生成）" autocomplete="off">
+      <div class="title-divider"></div>
+      <textarea id="memoInput" class="memo-input" placeholder="メモを入力..." autofocus></textarea>
+      <div id="attachmentPreview" class="attachment-preview hidden"></div>
+    </main>
+
+    <!-- ドロップオーバーレイ -->
+    <div id="dropOverlay" class="drop-overlay hidden">
+      <svg viewBox="0 0 24 24" width="48" height="48"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+      <span>ここにファイルをドロップ</span>
+    </div>
+
+    <!-- アカウントメニュー -->
+    <div id="accountMenu" class="menu-overlay hidden">
+      <div class="menu-panel">
+        <div class="menu-header">
+          <h2>アカウント</h2>
+          <button id="closeAccountMenu" class="icon-btn">&times;</button>
+        </div>
+        <div id="accountList" class="account-list"></div>
+        <button id="addAccountBtn" class="menu-item">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          <span>Googleアカウントを追加</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 保存ダイアログ -->
+    <div id="saveDialog" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>保存先</h2>
+          <button id="closeSaveDialog" class="icon-btn">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- ファイル形式 -->
+          <section class="section">
+            <h3>ファイル形式</h3>
+            <div class="format-options">
+              <label class="radio-card">
+                <input type="radio" name="fileFormat" value="application/vnd.google-apps.document" checked>
+                <div class="radio-card-body">
+                  <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                  <span>Googleドキュメント</span>
+                </div>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="fileFormat" value="text/plain">
+                <div class="radio-card-body">
+                  <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>
+                  <span>テキストファイル (.txt)</span>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          <!-- 保存先フォルダ -->
+          <section class="section">
+            <h3>保存先フォルダ</h3>
+            <div class="folder-tabs">
+              <button class="tab active" data-tab="default">デフォルト</button>
+              <button class="tab" data-tab="favorites">お気に入り</button>
+              <button class="tab" data-tab="browse">選択</button>
+            </div>
+
+            <div id="tabDefault" class="tab-panel active">
+              <div id="defaultFolderInfo" class="empty-state">
+                <span id="defaultFolderName">未設定</span>
+              </div>
+            </div>
+
+            <div id="tabFavorites" class="tab-panel">
+              <div id="favoritesList" class="folder-list"></div>
+            </div>
+
+            <div id="tabBrowse" class="tab-panel">
+              <button id="newFolderBtn" class="new-folder-btn">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M20 6h-8l-2-2H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg>
+                <span>新しいフォルダを作成</span>
+              </button>
+              <div id="newFolderInput" class="new-folder-row hidden">
+                <input type="text" id="newFolderName" placeholder="フォルダ名">
+                <button id="newFolderConfirm" class="btn-accent-sm">作成</button>
+                <button id="newFolderCancel" class="btn-ghost-sm">&times;</button>
+              </div>
+              <div id="folderTree" class="folder-tree">
+                <div class="loading">読み込み中...</div>
+              </div>
+            </div>
+
+            <div id="selectedFolder" class="selected-folder hidden">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+              <span id="selectedFolderName"></span>
+              <button id="addToFavBtn" class="icon-btn-sm" title="お気に入りに追加">
+                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              </button>
+            </div>
+          </section>
+
+          <!-- アーカイブ -->
+          <section class="section">
+            <h3>アーカイブに保存</h3>
+            <div class="archive-chips">
+              <button class="chip" data-expiry="86400000">1日</button>
+              <button class="chip" data-expiry="259200000">3日</button>
+              <button class="chip" data-expiry="604800000">1週間</button>
+              <button class="chip" data-expiry="2592000000">1ヶ月</button>
+              <button class="chip" data-expiry="custom">期間指定</button>
+              <button class="chip" data-expiry="0">期限なし</button>
+            </div>
+            <div id="customDaysRow" class="custom-days hidden">
+              <input type="number" id="customDays" min="1" max="365" placeholder="日数">
+              <span>日</span>
+            </div>
+          </section>
+
+          <!-- タイトル生成中 -->
+          <div id="titleGenerating" class="generating hidden">
+            <div class="spinner"></div>
+            <span>タイトル生成中...</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="cancelSave" class="btn-ghost">キャンセル</button>
+          <button id="confirmSave" class="btn-accent">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 設定パネル -->
+    <div id="settingsPanel" class="menu-overlay hidden">
+      <div class="menu-panel settings-panel">
+        <div class="menu-header">
+          <h2>設定</h2>
+          <button id="closeSettings" class="icon-btn">&times;</button>
+        </div>
+        <div class="settings-body">
+          <div class="setting-item">
+            <label>言語</label>
+            <select id="settingLang">
+              <option value="ja">日本語</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label>Gemini APIキー</label>
+            <div class="input-row">
+              <input type="password" id="settingGeminiKey" placeholder="APIキーを入力">
+              <button id="toggleKeyVisibility" class="btn-ghost-sm">表示</button>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>メモサブフォルダ名</label>
+            <input type="text" id="settingMemoFolder" placeholder="メモ">
+          </div>
+          <div class="setting-item">
+            <label>アーカイブフォルダ名</label>
+            <input type="text" id="settingArchiveFolder" placeholder="QuickMemo アーカイブ">
+          </div>
+          <button id="saveSettings" class="btn-accent full-width">保存</button>
+          <div id="settingsSaved" class="save-confirm hidden">保存しました</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- トースト -->
+    <div id="toast" class="toast hidden">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      <span id="toastText">保存しました</span>
+    </div>
+
+    <!-- 隠しファイル入力 -->
+    <input type="file" id="fileInput" multiple hidden>
+  </div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
